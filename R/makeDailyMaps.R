@@ -29,6 +29,8 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
                              asc_bias_list = c(3, 4, 5),
                              scale_factor = (10 / 14)) {
 
+  library(sf) # needed to make tibble happen for joins
+
   if (!all(is.numeric(event_size)) & !all(event_size > 0)) {
     stop("'event_size' must be a vector of positive numbers")
   }
@@ -199,7 +201,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
       }
     }
   }
-  risk_data_df <- county %>%
+  risk_data_df <-  sf::st_as_sf(county) %>%
     dplyr::left_join(plyr::join_all(risk_data, by = c("fips", "state")), by = c("GEOID" = "fips")) %>%
     dplyr::left_join(VaccImm, by = c("GEOID" = "county")) %>%
     sf::st_drop_geometry() %>%
@@ -213,7 +215,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     sf::st_drop_geometry() %>%
     dplyr::mutate(
       imOp = dplyr::case_when(pct_fully_vacc < 50 ~ 0.0, pct_fully_vacc > 50 ~ 0.7)) %>% # binary filter
-    dplyr::mutate(updated = ymd(gsub("-", "", Sys.Date())))
+    dplyr::mutate(updated = lubridate::ymd(gsub("-", "", Sys.Date())))
 
   utils::write.csv(risk_data_df,
     risk_output,
