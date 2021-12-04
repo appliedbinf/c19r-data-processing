@@ -23,6 +23,7 @@ calc_risk <- function(I, g, pop) {
 #'
 create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
                              vaccine_output = "usa_risk_countiesV.csv",
+                             output_prefix = ".",
                              event_size = c(10, 15, 20, 25, 50, 100, 500, 1000, 5000),
                              asc_bias_list = c(3, 4, 5),
                              scale_factor = (10 / 14)) {
@@ -39,10 +40,11 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     stop("Scaling factor is either not numeric or >1")
   }
 
+  risk_output = file.path(output_prefix, risk_output)
   if (file.access(dirname(risk_output), mode = 2) != 0) {
     stop("Directory for risk_output file does not appear to be writeable.")
   }
-
+  vaccine_output = file.path(output_prefix, vaccine_output)
   if (file.access(dirname(vaccine_output), mode = 2) != 0) {
     stop("Directory for vaccine_output file does not appear to be writeable.")
   }
