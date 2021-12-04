@@ -74,8 +74,8 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
 
       date = lubridate::as_date(date),
       county = dplyr::case_when(
-        # as.numeric(county) %in% bb_lp ~ 2997,
-        # as.numeric(county) %in% y_ha ~ 2998,
+        as.numeric(county) %in% c(2164, 2060) ~ 2997,
+        as.numeric(county) %in% c(2282, 2105) ~ 2998,
         as.numeric(county) %in% nyc ~ 99999,
         TRUE ~ as.numeric(county)
       )
