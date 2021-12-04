@@ -106,7 +106,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     unique()
 
   add_dates <- purrr::map_df(all_county,function(x){
-    tibble(
+    dplyr::tibble(
       county = x,
       date = all_dates
     )
