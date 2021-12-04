@@ -23,6 +23,3 @@ create_c19r_data(
 \description{
 Create covid19 risk prediction data
 }
-\examples{
-create_c19r_data(output = "./2022-01-01-usa-counties.csv")
-}
