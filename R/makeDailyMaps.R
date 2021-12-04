@@ -16,8 +16,9 @@ calc_risk <- function(I, g, pop) {
 #' @param event_size Vector of event sizes to predict risk with
 #' @param asc_bias_list Vector of ascertainment biases to predict risk with
 #' @param scale_factor Scaling factor, should be =< 1
-#' @param risk_output
-#' @param vaccine_output
+#' @param risk_output Risk output
+#' @param vaccine_output Risk outut
+#' @param output_prefix Output file prefux to applu to risk_output and vaccine_output
 #'
 #' @export
 #'
@@ -89,15 +90,15 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
       cnt_fully_vacc = sum(cnt_fully_vacc),
       # cnt_partially_vacc = sum(cnt_partially_vacc)
     ) %>%
-    ungroup()
+    dplyr::ungroup()
 
   ex_dates <- c(
     vacc_data$date %>%
       sort() %>%
-      first(),
+      dplyr::first(),
     vacc_data$date %>%
       sort() %>%
-      last()
+      dplyr::last()
   )
 
   all_dates <- ex_dates[1]+0:as.numeric(ex_dates[2]-ex_dates[1])

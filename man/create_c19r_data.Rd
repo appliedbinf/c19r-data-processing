@@ -5,14 +5,20 @@
 \title{Create covid19 risk prediction data}
 \usage{
 create_c19r_data(
-  output = "usa_risk_counties.csv",
+  risk_output = "usa_risk_counties.csv",
+  vaccine_output = "usa_risk_countiesV.csv",
+  output_prefix = ".",
   event_size = c(10, 15, 20, 25, 50, 100, 500, 1000, 5000),
   asc_bias_list = c(3, 4, 5),
   scale_factor = (10/14)
 )
 }
 \arguments{
-\item{output}{Output file}
+\item{risk_output}{Risk output}
+
+\item{vaccine_output}{Risk outut}
+
+\item{output_prefix}{Output file prefux to applu to risk_output and vaccine_output}
 
 \item{event_size}{Vector of event sizes to predict risk with}
 
