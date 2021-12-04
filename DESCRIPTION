@@ -1,0 +1,15 @@
+Package: c19rdata
+Type: Package
+Title: Create data files and static maps for {covid19RiskPlanner}
+Version: 0.1.0
+Author: Aroon Chande 
+Maintainer: Aroon Chande <achande@ihrc.com>
+Description: Helper library for deploying covid19RiskPlanner.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Depends: 
+    R (>= 2.10)
+RoxygenNote: 7.1.2
+Imports: 
+    magrittr
