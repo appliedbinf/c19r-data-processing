@@ -43,11 +43,11 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     stop("Scaling factor is either not numeric or >1")
   }
 
-  risk_output = file.path(output_prefix, risk_output)
+  risk_output <- file.path(output_prefix, risk_output)
   if (file.access(dirname(risk_output), mode = 2) != 0) {
     stop("Directory for risk_output file does not appear to be writeable.")
   }
-  vaccine_output = file.path(output_prefix, vaccine_output)
+  vaccine_output <- file.path(output_prefix, vaccine_output)
   if (file.access(dirname(vaccine_output), mode = 2) != 0) {
     stop("Directory for vaccine_output file does not appear to be writeable.")
   }
@@ -63,7 +63,6 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   nyc <- c(36005, 36047, 36061, 36085, 36081)
   vacc_data <- vroom::vroom("https://raw.githubusercontent.com/bansallab/vaccinetracking/main/vacc_data/data_county_timeseries.csv")
   vacc_data <- vacc_data %>%
-    # filter(CASE_TYPE %in% c("Complete","Partial"))%>%
     dplyr::filter(CASE_TYPE %in% c("Complete"))%>%
     tidyr::pivot_wider(
       names_from = CASE_TYPE,
@@ -72,11 +71,9 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     dplyr::select(
       county = COUNTY,
       cnt_fully_vacc = Complete,
-      # cnt_partially_vacc = Partial, # removing partials
       date = DATE
     )%>%
     dplyr::mutate(
-
       date = lubridate::as_date(date),
       county = dplyr::case_when(
         as.numeric(county) %in% c(2164, 2060) ~ 2997,
@@ -104,7 +101,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   )
 
   all_dates <- ex_dates[1]+0:as.numeric(ex_dates[2]-ex_dates[1])
-  all_county <- vacc_data$county %>%
+  all_county <- c(vacc_data$county, c(29991, 29992)) %>% # add Joplin and KC
     unique()
 
   add_dates <- purrr::map_df(all_county,function(x){
@@ -144,11 +141,20 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     dplyr::filter(date==past_date)%>%
     dplyr::inner_join(pop, by = c("county"="fips"))%>%
     dplyr::select(
-      -date, -pop
+      -date
     )%>%
+    dplyr::mutate( # Creating a new column to group by so we can give the same vaccination rates to areas surrounding Joplin and KC
+      v = dplyr::case_when(
+        county %in% c(29095, 29047, 29165, 29037, 29991) ~ 29993,
+        county %in% c(29097, 29145, 29992) ~ 29994,
+        TRUE ~ county
+      )
+    )%>%
+    dplyr::group_by(v)%>%
     dplyr::mutate(
-      pct_fully_vacc = cnt_fully_vacc/popC*100
-    )
+      pct_fully_vacc = sum(cnt_fully_vacc, na.rm=T)/sum(pop, na.rm=T)*100
+    )%>%
+    dplyr::select(-v)
 
   data_cur <- data %>%
     dplyr::filter(date == cur_date) %>%
@@ -208,14 +214,6 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     dplyr::mutate(imOp = dplyr::case_when(pct_fully_vacc < 50 ~ 0.0, pct_fully_vacc > 50 ~ 0.7)) %>% # binary filter
     dplyr::mutate(updated = lubridate::ymd(gsub("-", "", Sys.Date())))
 
-  # Vaccination layer: does not include Joplin and KC
-  risk_dataV = countyVacc %>%
-    dplyr::left_join(plyr::join_all(risk_data, by=c("fips", "state")), by=c("GEOID" = "fips")) %>%
-    dplyr::left_join(VaccImm, by=c("GEOID" = "county")) %>%
-    sf::st_drop_geometry() %>%
-    dplyr::mutate(
-      imOp = dplyr::case_when(pct_fully_vacc < 50 ~ 0.0, pct_fully_vacc > 50 ~ 0.7)) %>% # binary filter
-    dplyr::mutate(updated = lubridate::ymd(gsub("-", "", Sys.Date())))
 
   utils::write.csv(risk_data_df,
     risk_output,
@@ -223,9 +221,4 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     row.names = F
   )
 
-  utils::write.csv(risk_dataV,
-                   vaccine_output,
-                   quote = F,
-                   row.names = F
-  )
 }
