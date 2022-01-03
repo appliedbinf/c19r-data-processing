@@ -63,6 +63,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   nyc <- c(36005, 36047, 36061, 36085, 36081)
   vacc_data <- vroom::vroom("https://raw.githubusercontent.com/bansallab/vaccinetracking/main/vacc_data/data_county_timeseries.csv")
   vacc_data <- vacc_data %>%
+      tidyr::drop_na(DATE) %>%
     dplyr::filter(CASE_TYPE %in% c("Complete"))%>%
     tidyr::pivot_wider(
       names_from = CASE_TYPE,
@@ -100,16 +101,17 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
       dplyr::last()
   )
 
+  ex_dates[2] <- max(ex_dates[2], past_date)
+
   all_dates <- ex_dates[1]+0:as.numeric(ex_dates[2]-ex_dates[1])
   all_county <- c(vacc_data$county, c(29991, 29992)) %>% # add Joplin and KC
     unique()
 
-  add_dates <- purrr::map_df(all_county,function(x){
-    dplyr::tibble(
-      county = x,
+  add_dates <- purrr::map_df(all_county,~dplyr::tibble(
+      county = .x,
       date = all_dates
     )
-  })
+  )
 
   vacc_data_fill <- vacc_data%>%
     dplyr::mutate(
@@ -137,7 +139,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     )%>%
     dplyr::ungroup()
 
-  VaccImm <- vacc_data_fill%>%
+ VaccImm <- vacc_data_fill%>%
     dplyr::filter(date==past_date)%>%
     dplyr::inner_join(pop, by = c("county"="fips"))%>%
     dplyr::select(
