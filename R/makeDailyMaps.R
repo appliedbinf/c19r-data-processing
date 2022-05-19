@@ -19,6 +19,7 @@ calc_risk <- function(I, g, pop) {
 #' @param risk_output Risk output
 #' @param vaccine_output Risk outut
 #' @param output_prefix Output file prefux to applu to risk_output and vaccine_output
+#' @param year Year, starting with 2020, to grab data for
 #'
 #' @export
 #'
@@ -27,7 +28,8 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
                              output_prefix = ".",
                              event_size = c(10, 15, 20, 25, 50, 100, 500, 1000, 5000),
                              asc_bias_list = c(3, 4, 5),
-                             scale_factor = (10 / 14)) {
+                             scale_factor = (10 / 14),
+                             year = 2022) {
 
   library(sf) # needed to make tibble happen for joins
 
@@ -54,7 +56,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
 
 
 
-  dataurl <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+  dataurl <- glue::glue("https://github.com/nytimes/covid-19-data/raw/master/us-counties-{year}.csv")
   data <- vroom::vroom(dataurl)
 
   cur_date <- lubridate::ymd(gsub("-", "", Sys.Date())) - 1
