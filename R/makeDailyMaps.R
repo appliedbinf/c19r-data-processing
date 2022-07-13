@@ -63,7 +63,8 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   past_date <- lubridate::ymd(cur_date) - 14
 
   nyc <- c(36005, 36047, 36061, 36085, 36081)
-  vacc_data <- vroom::vroom("https://raw.githubusercontent.com/bansallab/vaccinetracking/main/vacc_data/data_county_timeseries.csv")
+  vaccurl = "https://github.com/bansallab/vaccinetracking/raw/main/vacc_data/data_county_timeseries.csv"
+  vacc_data <- vroom::vroom(vaccurl)
   vacc_data <- vacc_data %>%
       tidyr::drop_na(DATE) %>%
     dplyr::filter(CASE_TYPE %in% c("Complete"))%>%
