@@ -63,6 +63,33 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   past_date <- lubridate::ymd(cur_date) - 14
 
   nyc <- c(36005, 36047, 36061, 36085, 36081)
+  #new ######################################
+
+  vaccurl = "https://data.cdc.gov/api/views/8xkx-amqh/rows.csv"
+  vacc_data <- vroom::vroom(vaccurl, show_col_types = FALSE, progress = FALSE)
+
+  vacc_data <- vacc_data %>%
+    dplyr::mutate(date = as.Date(Date,format = "%m/%d/%Y")) %>%
+    dplyr::select(date, county = FIPS, Recip_County, Recip_State, Bivalent_Booster_5Plus, Bivalent_Booster_5Plus_Pop_Pct, Bivalent_Booster_12Plus, Bivalent_Booster_12Plus_Pop_Pct, Bivalent_Booster_18Plus, Bivalent_Booster_18Plus_Pop_Pct, Bivalent_Booster_65Plus, Bivalent_Booster_65Plus_Pop_Pct) %>%
+    dplyr::filter(date %in% unique(date)[1]) %>%
+    dplyr::filter(county != "UNK") %>%
+    dplyr::mutate(county = as.numeric(county)) %>%
+    dplyr::mutate(
+        county = dplyr::case_when(
+            as.numeric(county) %in% c(2164, 2060) ~ 2997,
+            as.numeric(county) %in% c(2282, 2105) ~ 2998,
+            as.numeric(county) %in% nyc ~ 99999,
+            TRUE ~ as.numeric(county)
+        )
+    ) %>%
+        dplyr::group_by(
+        date, county
+    ) %>%
+    dplyr::summarise(Bivalent_Booster_5Plus = sum(Bivalent_Booster_5Plus)) %>%
+    dplyr::ungroup()
+
+
+  #old #####################################
   vaccurl = "https://github.com/bansallab/vaccinetracking/raw/main/vacc_data/data_county_timeseries.csv"
   vacc_data <- vroom::vroom(vaccurl)
   vacc_data <- vacc_data %>%
@@ -94,6 +121,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
       # cnt_partially_vacc = sum(cnt_partially_vacc)
     ) %>%
     dplyr::ungroup()
+  #############################################
 
   ex_dates <- c(
     vacc_data$date %>%
