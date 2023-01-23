@@ -59,7 +59,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
   dataurl <- glue::glue("https://github.com/nytimes/covid-19-data/raw/master/us-counties-{year}.csv")
   data <- vroom::vroom(dataurl)
 
-  cur_date <- lubridate::ymd(gsub("-", "", Sys.Date())) - 1
+  cur_date <- lubridate::ymd(max(data$date))
   past_date <- lubridate::ymd(cur_date) - 14
 
   nyc <- c(36005, 36047, 36061, 36085, 36081)
