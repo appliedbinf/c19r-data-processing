@@ -29,7 +29,7 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
                              event_size = c(10, 15, 20, 25, 50, 100, 500, 1000, 5000),
                              asc_bias_list = c(3, 4, 5),
                              scale_factor = (10 / 14),
-                             year = 2022) {
+                             year = 2023) {
 
   library(sf) # needed to make tibble happen for joins
 
@@ -67,6 +67,8 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
 
   vaccurl = "https://data.cdc.gov/api/views/8xkx-amqh/rows.csv"
   vacc_data <- vroom::vroom(vaccurl, show_col_types = FALSE, progress = FALSE)
+  #Note1: this is a relatively large file.
+  #Note2: bivalent recently approved for under 5's. May need updating soon to account for this.
 
   vacc_data <- vacc_data %>%
     dplyr::mutate(date = as.Date(Date,format = "%m/%d/%Y")) %>%
@@ -89,93 +91,10 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     dplyr::ungroup()
 
 
-  #old #####################################
-  vaccurl = "https://github.com/bansallab/vaccinetracking/raw/main/vacc_data/data_county_timeseries.csv"
-  vacc_data <- vroom::vroom(vaccurl)
-  vacc_data <- vacc_data %>%
-      tidyr::drop_na(DATE) %>%
-    dplyr::filter(CASE_TYPE %in% c("Complete"))%>%
-    tidyr::pivot_wider(
-      names_from = CASE_TYPE,
-      values_from = CASES
-    )%>%
-    dplyr::select(
-      county = COUNTY,
-      cnt_fully_vacc = Complete,
-      date = DATE
-    )%>%
-    dplyr::mutate(
-      date = lubridate::as_date(date),
-      county = dplyr::case_when(
-        as.numeric(county) %in% c(2164, 2060) ~ 2997,
-        as.numeric(county) %in% c(2282, 2105) ~ 2998,
-        as.numeric(county) %in% nyc ~ 99999,
-        TRUE ~ as.numeric(county)
-      )
-    ) %>%
-    dplyr::group_by(
-      date, county
-    ) %>%
-    dplyr::summarise(
-      cnt_fully_vacc = sum(cnt_fully_vacc),
-      # cnt_partially_vacc = sum(cnt_partially_vacc)
-    ) %>%
-    dplyr::ungroup()
-  #############################################
+  vacc_data <- rbind(vacc_data,list(vacc_data$date[1],29991,NA),list(vacc_data$date[1],29992,NA)) #add Joplin and Kansas City
 
-  ex_dates <- c(
-    vacc_data$date %>%
-      sort() %>%
-      dplyr::first(),
-    vacc_data$date %>%
-      sort() %>%
-      dplyr::last()
-  )
-
-  ex_dates[2] <- max(ex_dates[2], past_date)
-
-  all_dates <- ex_dates[1]+0:as.numeric(ex_dates[2]-ex_dates[1])
-  all_county <- c(vacc_data$county, c(29991, 29992)) %>% # add Joplin and KC
-    unique()
-
-  add_dates <- purrr::map_df(all_county,~dplyr::tibble(
-      county = .x,
-      date = all_dates
-    )
-  )
-
-  vacc_data_fill <- vacc_data%>%
-    dplyr::mutate(
-      last_date = date
-    )%>%
-    dplyr::full_join(
-      add_dates
-    )%>%
-    dplyr::group_by(county)%>%
-    dplyr::arrange(date)%>%
-    dplyr::mutate(
-      cnt_fully_vacc = zoo::na.approx(cnt_fully_vacc, na.rm=F),
-      # cnt_partially_vacc = na.approx(cnt_partially_vacc, na.rm=F),
-      # the 'is_last' variable is telling us that it could not interpolate cnt_fully_vacc because the date is after the last value in the bansal data set.
-      # Therefore, when is_last == T, we can display the "last date" in the mouseover UI
-      is_last = dplyr::case_when(
-        is.na(cnt_fully_vacc)==T ~ TRUE,
-        TRUE ~ FALSE
-      )
-    )%>%
-    tidyr::fill(
-      cnt_fully_vacc,
-      # cnt_partially_vacc,
-      last_date
-    )%>%
-    dplyr::ungroup()
-
- VaccImm <- vacc_data_fill%>%
-    dplyr::filter(date==past_date)%>%
+ VaccImm <- vacc_data%>%
     dplyr::inner_join(pop, by = c("county"="fips"))%>%
-    dplyr::select(
-      -date
-    )%>%
     dplyr::mutate( # Creating a new column to group by so we can give the same vaccination rates to areas surrounding Joplin and KC
       v = dplyr::case_when(
         county %in% c(29095, 29047, 29165, 29037, 29991) ~ 29993,
@@ -185,9 +104,12 @@ create_c19r_data <- function(risk_output = "usa_risk_counties.csv",
     )%>%
     dplyr::group_by(v)%>%
     dplyr::mutate(
-      pct_fully_vacc = sum(cnt_fully_vacc, na.rm=T)/sum(pop, na.rm=T)*100
+      pct_fully_vacc = sum(Bivalent_Booster_5Plus, na.rm=TRUE)/sum(pop, na.rm=TRUE)*100
     )%>%
+     dplyr::ungroup()%>%
     dplyr::select(-v)
+
+ VaccImm[which(VaccImm$date < past_date)] = NA #check data lines up.
 
   data_cur <- data %>%
     dplyr::filter(date == cur_date) %>%
